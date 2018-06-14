@@ -54,6 +54,7 @@ public class MyBenchmark {
   private static final String DB_CONNECTION = "jdbc:dremio:direct=localhost:31010";
   private static final String DB_USER = "x";
   private static final String DB_PASSWORD = "dremio123";
+  static final int MAX_VALUE = 500000000;
 
   @State(Scope.Thread)
   public static class DBState {
@@ -70,6 +71,7 @@ public class MyBenchmark {
         System.out.println(e.getMessage());
         e.printStackTrace();
       }
+
     }
 
     @TearDown(Level.Trial)
@@ -88,21 +90,67 @@ public class MyBenchmark {
   @Warmup(iterations = 5)
   @Measurement(iterations = 3)
   @BenchmarkMode(Mode.SampleTime)
-  public void testMethod(DBState state) {
+  public void testSimple(DBState state) {
     try {
-      String query = "SELECT count(x+N2x+N3x) as mycount FROM json.\"100M.json\"";
+      String query = "SELECT count(x+N2x+N3x) as mycount FROM json.d500";
       ResultSet rs = state.statement.executeQuery(query);
-
-      // Let's iterate through the java ResultSet
-      while (rs.next()) {
-        long count = rs.getLong("mycount");
-
-        // Simply Print the results
-        System.out.println("mycount " + count);
-      }
+      System.out.println(rs.getRow());
     } catch (SQLException e) {
       e.printStackTrace();
     }
   }
 
+  private String buildCaseExpr(int ncases, String field) {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append(" count (case ");
+    for (int i = 1; i <= ncases; i++) {
+      builder.append(" when " + field + " < " +
+        (i * (MAX_VALUE / ncases)) +
+        " then " + field + "/" + (i * (MAX_VALUE / ncases)) + " + " + i + "\n");
+    }
+    builder.append(" else " + ncases + " end) ");
+    return builder.toString();
+  }
+
+  /*
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 5)
+  @Measurement(iterations = 3)
+  @BenchmarkMode(Mode.SampleTime)
+  public void testCase10(DBState state) {
+    try {
+      String query = "SELECT " + buildCaseExpr(10, "x") + " FROM json.d500";
+      //System.out.println(query);
+      ResultSet rs = state.statement.executeQuery(query);
+      System.out.println(rs.getRow());
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+  }
+  */
+
+  /*
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 5)
+  @Measurement(iterations = 3)
+  @BenchmarkMode(Mode.SampleTime)
+  public void testCase100(DBState state) {
+    try {
+      String query = "SELECT " +
+        buildCaseExpr(100, "x") + ", " +
+        buildCaseExpr(100, "N2x") + ", " +
+        buildCaseExpr(100, "N3x") +
+        " FROM json.d500";
+      //System.out.println(query);
+
+      ResultSet rs = state.statement.executeQuery(query);
+      System.out.println(rs.getRow());
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+  }
+  */
 }
