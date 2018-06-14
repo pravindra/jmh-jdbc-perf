@@ -37,12 +37,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.Warmup;
 
 public class MyBenchmark {
   private static final String DB_DRIVER = "com.dremio.jdbc.Driver";
@@ -79,9 +84,13 @@ public class MyBenchmark {
   }
 
   @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 5)
+  @Measurement(iterations = 3)
+  @BenchmarkMode(Mode.SampleTime)
   public void testMethod(DBState state) {
     try {
-      String query = "SELECT count(x+N2x+N3x) as mycount FROM json.\"10M.json\"";
+      String query = "SELECT count(x+N2x+N3x) as mycount FROM json.\"100M.json\"";
       ResultSet rs = state.statement.executeQuery(query);
 
       // Let's iterate through the java ResultSet
