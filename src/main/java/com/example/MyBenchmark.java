@@ -85,7 +85,7 @@ public class MyBenchmark {
     }
   }
 
-  @Benchmark
+  /*@Benchmark
   @Fork(1)
   @Warmup(iterations = 5)
   @Measurement(iterations = 3)
@@ -98,7 +98,56 @@ public class MyBenchmark {
     } catch (SQLException e) {
       e.printStackTrace();
     }
+  }*/
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 5)
+  @Measurement(iterations = 3)
+  @BenchmarkMode(Mode.SampleTime)
+  public void testSimple5(DBState state) {
+    try {
+      String query = "SELECT " +
+        "sum(x + N2x + N3x), " +
+        "sum(x * N2x - N3x), " +
+        "sum(3 * x + 2 * N2x + N3x), " +
+        "count(x >= N2x - N3x), " +
+        "count(x + N2x = N3x)" +
+        "FROM json.d500";
+      ResultSet rs = state.statement.executeQuery(query);
+      System.out.println(rs.getRow());
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
   }
+
+  /*
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 5)
+  @Measurement(iterations = 3)
+  @BenchmarkMode(Mode.SampleTime)
+  public void testSimple5(DBState state) {
+    try {
+      String query = "SELECT " +
+        "sum(x + N2x + N3x), " +
+        "sum(x * N2x - N3x), " +
+        "sum(3 * x + 2 * N2x + N3x), " +
+        "count(x >= N2x - N3x), " +
+        "count(x + N2x = N3x), " +
+        "sum(x - N2x + N3x), " +
+        "sum(x * N2x + N3x), " +
+        "sum(x + 2 * N2x + 3 * N3x), " +
+        "count(x <= N2x - N3x), " +
+        "count(x = N3x - N2x)" +
+        "FROM json.d500";
+      ResultSet rs = state.statement.executeQuery(query);
+      System.out.println(rs.getRow());
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+  }
+  */
 
   private String buildCaseExpr(int ncases, String field) {
     StringBuilder builder = new StringBuilder();
