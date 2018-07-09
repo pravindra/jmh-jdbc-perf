@@ -31,9 +31,11 @@
 
 package com.example;
 
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -48,6 +50,8 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+
+import cdjd.com.google.common.io.ByteStreams;
 
 public class MyBenchmark {
   private static final String DB_DRIVER = "com.dremio.jdbc.Driver";
@@ -85,6 +89,22 @@ public class MyBenchmark {
     }
   }
 
+  private void printResults(ResultSet rs) throws SQLException {
+    ResultSetMetaData rsMeta = rs.getMetaData();
+    int numColumns = rsMeta.getColumnCount();
+    while (rs.next()) {
+      for (int i = 1; i <= numColumns; i++) {
+        if (i > 1) {
+          System.out.print(",  ");
+        }
+
+        String columnValue = rs.getString(i);
+        System.out.print(columnValue + " " + rsMeta.getColumnName(i));
+      }
+      System.out.println("");
+    }
+  }
+
   /*@Benchmark
   @Fork(1)
   @Warmup(iterations = 5)
@@ -94,11 +114,11 @@ public class MyBenchmark {
     try {
       String query = "SELECT count(x+N2x+N3x) as mycount FROM json.d500";
       ResultSet rs = state.statement.executeQuery(query);
-      System.out.println(rs.getRow());
+      printResults(rs);
     } catch (SQLException e) {
       e.printStackTrace();
     }
-  }*/
+  }
 
   @Benchmark
   @Fork(1)
@@ -115,11 +135,11 @@ public class MyBenchmark {
         "count(x + N2x = N3x)" +
         "FROM json.d500";
       ResultSet rs = state.statement.executeQuery(query);
-      System.out.println(rs.getRow());
+      printResults(rs);
     } catch (SQLException e) {
       e.printStackTrace();
     }
-  }
+  }*/
 
   /*
   @Benchmark
@@ -142,24 +162,29 @@ public class MyBenchmark {
         "count(x = N3x - N2x)" +
         "FROM json.d500";
       ResultSet rs = state.statement.executeQuery(query);
-      System.out.println(rs.getRow());
+      printResults(rs);
     } catch (SQLException e) {
       e.printStackTrace();
     }
   }
   */
 
-  private String buildCaseExpr(int ncases, String field) {
-    StringBuilder builder = new StringBuilder();
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 5)
+  @Measurement(iterations = 3)
+  @BenchmarkMode(Mode.SampleTime)
+  public void testBigOne(DBState state) {
+    try {
+      InputStream in = getClass().getResourceAsStream("/sample.sql");
+      String query = new String(ByteStreams.toByteArray(in));
 
-    builder.append(" count (case ");
-    for (int i = 1; i <= ncases; i++) {
-      builder.append(" when " + field + " < " +
-        (i * (MAX_VALUE / ncases)) +
-        " then " + field + "/" + (i * (MAX_VALUE / ncases)) + " + " + i + "\n");
+      //System.out.println(query);
+      ResultSet rs = state.statement.executeQuery(query);
+      printResults(rs);
+    } catch (Exception e) {
+      e.printStackTrace();
     }
-    builder.append(" else " + ncases + " end) ");
-    return builder.toString();
   }
 
   /*
@@ -173,7 +198,7 @@ public class MyBenchmark {
       String query = "SELECT " + buildCaseExpr(10, "x") + " FROM json.d500";
       //System.out.println(query);
       ResultSet rs = state.statement.executeQuery(query);
-      System.out.println(rs.getRow());
+      printResults(rs);
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -196,7 +221,7 @@ public class MyBenchmark {
       //System.out.println(query);
 
       ResultSet rs = state.statement.executeQuery(query);
-      System.out.println(rs.getRow());
+      printResults(rs);
     } catch (SQLException e) {
       e.printStackTrace();
     }
